@@ -65,6 +65,7 @@ class Main:
     def write_tracker_file(self, tracker_dict):
         with open(self.tracker_file, 'w') as f:
             json.dump(tracker_dict, f)
+            print("State saved in a file")
 
     def generate_heatmap(self, image, label):
         self.model.zero_grad()

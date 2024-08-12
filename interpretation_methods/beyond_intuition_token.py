@@ -6,7 +6,7 @@ def beyond_intuition_tokenwise(model, x, device, index=None, steps=20, start_lay
 
     # A dictionary to track down all the output at every step, so we can visualize it.
     TRACKER_DICTIONARY = {
-        "input": x,
+        "input": x.tolist(),
         "steps": steps,
         "start_layer": start_layer,
     }
@@ -19,14 +19,14 @@ def beyond_intuition_tokenwise(model, x, device, index=None, steps=20, start_lay
     if index is None:
         index = np.argmax(output.cpu().data.numpy(), axis=-1)
 
-    TRACKER_DICTIONARY["output"] = output
+    TRACKER_DICTIONARY["output"] = output.tolist()
 
     one_hot = np.zeros((b, output.size()[-1]), dtype=np.float32)
     one_hot[np.arange(b), index] = 1
     one_hot = torch.from_numpy(one_hot).requires_grad_(True).to(device)
     one_hot = torch.sum(one_hot * output)
 
-    TRACKER_DICTIONARY['one_hot'] = one_hot
+    TRACKER_DICTIONARY['one_hot'] = one_hot.tolist()
 
     model.zero_grad()
     one_hot.backward(retain_graph=True)
@@ -37,7 +37,7 @@ def beyond_intuition_tokenwise(model, x, device, index=None, steps=20, start_lay
 
     R = torch.eye(num_tokens, num_tokens).expand(b, num_tokens, num_tokens).to(device)
 
-    TRACKER_DICTIONARY['R_before_block_ops'] = R
+    TRACKER_DICTIONARY['R_before_block_ops'] = R.tolist()
 
     TRACKER_DICTIONARY['Attention_Perception'] = dict()
 
@@ -62,14 +62,14 @@ def beyond_intuition_tokenwise(model, x, device, index=None, steps=20, start_lay
         R = R + torch.matmul(O_t, R.to(device))
 
         TRACKER_DICTIONARY['Attention_Perception'][f"rOps_{blk_idx}"] = {
-            "z": z,
-            "m": m,
-            "order": order,
-            "vproj": vproj,
-            "cam_noreshape": cam,
-            "mean_cam": mean_cam,
-            "O": O_t,
-            "R": R,
+            "z": z.tolist(),
+            "m": m.tolist(),
+            "order": order.tolist(),
+            "vproj": vproj.tolist(),
+            "cam_noreshape": cam.tolist(),
+            "mean_cam": mean_cam.tolist(),
+            "O": O_t.tolist(),
+            "R": R.tolist(),
         }
 
 
@@ -82,7 +82,7 @@ def beyond_intuition_tokenwise(model, x, device, index=None, steps=20, start_lay
         else:
             return R[:, 0, 1:].abs()
 
-    TRACKER_DICTIONARY["AP_R_after_modelwise_transformation"] = R
+    TRACKER_DICTIONARY["AP_R_after_modelwise_transformation"] = R.tolist()
 
     TRACKER_DICTIONARY['Reasoning_Feeback'] = dict()
 
@@ -103,32 +103,32 @@ def beyond_intuition_tokenwise(model, x, device, index=None, steps=20, start_lay
         total_gradients += gradients
 
         TRACKER_DICTIONARY['Reasoning_Feeback'][f"alpha_{alpha}"] = {
-            "data_scaled": data_scaled,
-            "output": output,
-            "one_hot": one_hot,
-            "gradients": gradients,
+            "data_scaled": data_scaled.tolist(),
+            "output": output.tolist(),
+            "one_hot": one_hot.tolist(),
+            "gradients": gradients.tolist(),
             "gradient_shape":  model.blocks[-1].attn.get_attn_gradients().shape,
-            "total_gradients": total_gradients,
+            "total_gradients": total_gradients.tolist(),
         }
 
     W_state = (total_gradients / steps).clamp(min=0).mean(1).reshape(b, num_tokens, num_tokens)
     R = W_state * R.abs()
 
-    TRACKER_DICTIONARY["W_state"] = W_state
-    TRACKER_DICTIONARY["R_after_resfeedback"] = R
+    TRACKER_DICTIONARY["W_state"] = W_state.tolist()
+    TRACKER_DICTIONARY["R_after_resfeedback"] = R.tolist()
 
 
     if mae:
         R_MAE = R[:, 1:, 1:].mean(axis=1)
-        TRACKER_DICTIONARY["R_final"] = (R_MAE, "MAE")
+        TRACKER_DICTIONARY["R_final"] = (R_MAE.tolist(), "MAE")
         return R_MAE, TRACKER_DICTIONARY
 
     elif dino:
         R_DINO = (R[:, 1:, 1:].mean(axis=1) + R[:, 0, 1:])
-        TRACKER_DICTIONARY["R_final"] = (R_DINO, "DINO")
+        TRACKER_DICTIONARY["R_final"] = (R_DINO.tolist(), "DINO")
         return R_DINO, TRACKER_DICTIONARY
 
     else:
         R_general = R[:, 0, 1:]
-        TRACKER_DICTIONARY["R_final"] = (R_general, "General Case")
+        TRACKER_DICTIONARY["R_final"] = (R_general.tolist(), "General Case")
         return R_general, TRACKER_DICTIONARY
