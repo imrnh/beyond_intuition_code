@@ -5,7 +5,7 @@ import numpy as np
 def beyond_intuition_tokenwise(model, x, device, index=None, steps=20, start_layer=6, samples=20, noise=0.2, mae=False, ssl=False, dino=False):
     x = x.to(device)
 
-    b = x.shape[0]
+    b = x.shape[0]  # Batch size
     output = model(x, register_hook=True)
     if index is None:
         index = np.argmax(output.cpu().data.numpy(), axis=-1)
@@ -21,16 +21,24 @@ def beyond_intuition_tokenwise(model, x, device, index=None, steps=20, start_lay
     _, num_head, num_tokens, _ = model.blocks[-1].attn.get_attention_map().shape
 
     R = torch.eye(num_tokens, num_tokens).expand(b, num_tokens, num_tokens).to(device)
-    for nb, blk in enumerate(model.blocks):
-        if nb < start_layer - 1:
+    for blk_idx, blk in enumerate(model.blocks):
+        if blk_idx < start_layer - 1:
             continue
-        z = blk.get_input()
-        vproj = blk.attn.vproj
-        order = torch.linalg.norm(vproj, dim=-1).squeeze() / torch.linalg.norm(z, dim=-1).squeeze()
-        m = torch.diag_embed(order)
-        cam = blk.attn.get_attention_map()
-        cam = cam.reshape(-1, cam.shape[-2], cam.shape[-1]).mean(0)
-        R = R + torch.matmul(torch.matmul(cam.to(device), m.to(device)), R.to(device))
+
+        # Calculate alpha in the paper.
+        z = blk.get_input()  # We can even call it z.
+        vproj = blk.attn.vproj  # vproj = Z * Wv * W(l).
+        order = torch.linalg.norm(vproj, dim=-1).squeeze() / torch.linalg.norm(z, dim=-1).squeeze()  # Z * Wv * W(l) / Z    --->  V / Z.
+        m = torch.diag_embed(order)  # Converted the order into a diagonal matrix.
+
+        # Get attention map A_i which will be multiplied by alpha_i.
+        cam = blk.attn.get_attention_map()  # Shape --> (batch_size, num_tokens, num_tokens)
+        cam = cam.reshape(-1, cam.shape[-2], cam.shape[-1]).mean(0)  # Make the shape (1, batch_size, num_tokens, num_tokens).
+        # Then take mean for the first axis and making it of shape (batch_size, num_tokens, num_tokens).
+        # But from a sample test, I've seen that it doesn't change the cam tensor somehow.
+
+        O_token = torch.matmul(cam.to(device), m.to(device))  # O = AZW
+        R = R + torch.matmul(O_token, R.to(device))
 
     if ssl:
         if mae:
