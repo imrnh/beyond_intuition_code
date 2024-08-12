@@ -1,0 +1,7 @@
+**/__pycache__/
+models/**
+models/
+models/pretrained_model/
+run/
+dataset/
+dataset/gtsegs_ijcv.mat
