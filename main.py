@@ -6,6 +6,7 @@ import torch
 import torchvision.transforms as transforms
 from torch.utils.data import DataLoader
 
+import json
 import numpy as np
 from PIL import Image
 from tqdm import tqdm
@@ -23,10 +24,11 @@ plt.switch_backend("agg")
 
 
 class Main:
-    def __init__(self, batch_size=1, num_workers=1, alpha=2):
+    def __init__(self, batch_size=1, num_workers=1, alpha=2, tracker_file="tracker_file.txt"):
         self.batch_size = batch_size
         self.num_workers = num_workers
         self.alpha = alpha
+        self.tracker_file = tracker_file
         self.device = torch.device("cuda" if torch.cuda.is_available() else "cpu")
 
         self.argument_parser = get_arg_parser()
@@ -60,6 +62,10 @@ class Main:
         self.resulting_heatmaps = []
         self.input_images = []
 
+    def write_tracker_file(self, tracker_dict):
+        with open(self.tracker_file, 'w') as f:
+            json.dump(tracker_dict, f)
+
     def generate_heatmap(self, image, label):
         self.model.zero_grad()
         self.lrp_model.zero_grad()
@@ -76,7 +82,9 @@ class Main:
             heatmap = beyond_intuition_headwise(self.model, image, self.device, dino=True, start_layer=self.args.start_layer)
 
         elif self.args.method == 'ours_c':
-            heatmap = beyond_intuition_tokenwise(self.model, image, self.device, dino=True, start_layer=self.args.start_layer)
+            heatmap, TRACKER_DICTIONARY = beyond_intuition_tokenwise(self.model, image, self.device, dino=True, start_layer=self.args.start_layer)
+            if self.tracker_file:
+                self.write_tracker_file(tracker_dict=TRACKER_DICTIONARY)
 
         elif self.args.method == 'transformer_attribution':
             heatmap = layerwise_relevance_propagation(self.lrp_model, image, self.device, start_layer=1, method="transformer_attribution")

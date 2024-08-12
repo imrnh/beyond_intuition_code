@@ -8,7 +8,7 @@ def get_arg_parser():
     parser.add_argument('--train_dataset', type=str, default='imagenet', metavar='N',
                         help='Testing Dataset')
     parser.add_argument('--method', type=str,
-                        default='ours',
+                        default='ours_c',
                         choices=['rollout', 'lrp', 'partial_lrp', 'transformer_attribution', 'attn_last_layer',
                                  'attn_gradcam', 'generic_attribution', 'ours', 'ours_c'],
                         help='')
@@ -40,7 +40,7 @@ def get_arg_parser():
                         default=False,
                         help='')
     parser.add_argument('--len-lim', type=int,
-                        default=100,
+                        default=1,
                         help='')
     parser.add_argument('--imagenet-seg-path', type=str, required=True)
 

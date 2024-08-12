@@ -4,7 +4,7 @@ import numpy as np
 
 def beyond_intuition_tokenwise(model, x, device, index=None, steps=20, start_layer=6, samples=20, noise=0.2, mae=False, ssl=False, dino=False):
 
-    # A dictionary to track down all the output at every step so we can visualize it.
+    # A dictionary to track down all the output at every step, so we can visualize it.
     TRACKER_DICTIONARY = {
         "input": x,
         "steps": steps,
@@ -78,7 +78,7 @@ def beyond_intuition_tokenwise(model, x, device, index=None, steps=20, start_lay
         if mae:
             return R[:, 1:, 1:].abs().mean(axis=1)
         elif dino:
-            return (R[:, 1:, 1:].abs().mean(axis=1) + R[:, 0, 1:].abs())
+            return R[:, 1:, 1:].abs().mean(axis=1) + R[:, 0, 1:].abs()
         else:
             return R[:, 0, 1:].abs()
 
@@ -107,7 +107,7 @@ def beyond_intuition_tokenwise(model, x, device, index=None, steps=20, start_lay
             "output": output,
             "one_hot": one_hot,
             "gradients": gradients,
-            "gradient_shape":  model.blocks[-1].attn.get_attn_gradients().shape
+            "gradient_shape":  model.blocks[-1].attn.get_attn_gradients().shape,
             "total_gradients": total_gradients,
         }
 
@@ -117,17 +117,18 @@ def beyond_intuition_tokenwise(model, x, device, index=None, steps=20, start_lay
     TRACKER_DICTIONARY["W_state"] = W_state
     TRACKER_DICTIONARY["R_after_resfeedback"] = R
 
+
     if mae:
         R_MAE = R[:, 1:, 1:].mean(axis=1)
         TRACKER_DICTIONARY["R_final"] = (R_MAE, "MAE")
-        return R_MAE
+        return R_MAE, TRACKER_DICTIONARY
+
     elif dino:
         R_DINO = (R[:, 1:, 1:].mean(axis=1) + R[:, 0, 1:])
         TRACKER_DICTIONARY["R_final"] = (R_DINO, "DINO")
-        return R_DINO
+        return R_DINO, TRACKER_DICTIONARY
+
     else:
         R_general = R[:, 0, 1:]
         TRACKER_DICTIONARY["R_final"] = (R_general, "General Case")
-        return R_general
-
-
+        return R_general, TRACKER_DICTIONARY
