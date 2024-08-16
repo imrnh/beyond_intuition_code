@@ -43,5 +43,6 @@ def get_arg_parser():
                         default=1,
                         help='')
     parser.add_argument('--imagenet-seg-path', type=str, required=True)
+    parser.add_argument('--model-dir', type=str, default='models/pretrained_model/')
 
     return parser
