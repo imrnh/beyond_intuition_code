@@ -1,7 +1,8 @@
 mkdir models
-mkdir pretrained_model
+mkdir models/pretrained_model
 wget https://www.kaggle.com/api/v1/models/andrewstell/popular-vits-for-interpretation/pyTorch/default/1/download
-mv download /models/pretrained_model/download
+mv download models/pretrained_model/download
+cd models/pretrained_model/
 tar -xvf download
 rm download
 
