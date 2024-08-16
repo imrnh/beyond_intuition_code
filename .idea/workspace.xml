@@ -5,14 +5,9 @@
   </component>
   <component name="ChangeListManager">
     <list default="true" id="6f3893b4-239f-4646-a6ee-cd4ff4930c2a" name="Changes" comment="">
-      <change afterPath="$PROJECT_DIR$/test.ipynb" afterDir="false" />
-      <change afterPath="$PROJECT_DIR$/utils/image_denorm.py" afterDir="false" />
-      <change afterPath="$PROJECT_DIR$/utils/sideplot.py" afterDir="false" />
-      <change beforePath="$PROJECT_DIR$/.gitignore" beforeDir="false" afterPath="$PROJECT_DIR$/.gitignore" afterDir="false" />
       <change beforePath="$PROJECT_DIR$/.idea/workspace.xml" beforeDir="false" afterPath="$PROJECT_DIR$/.idea/workspace.xml" afterDir="false" />
       <change beforePath="$PROJECT_DIR$/interpretation_methods/beyond_intuition_token.py" beforeDir="false" afterPath="$PROJECT_DIR$/interpretation_methods/beyond_intuition_token.py" afterDir="false" />
       <change beforePath="$PROJECT_DIR$/main.py" beforeDir="false" afterPath="$PROJECT_DIR$/main.py" afterDir="false" />
-      <change beforePath="$PROJECT_DIR$/tracker_file.txt" beforeDir="false" afterPath="$PROJECT_DIR$/tracker_file.txt" afterDir="false" />
     </list>
     <option name="SHOW_DIALOG" value="false" />
     <option name="HIGHLIGHT_CONFLICTS" value="true" />
@@ -120,6 +115,7 @@
       <workItem from="1723425987609" duration="5340000" />
       <workItem from="1723721389781" duration="5242000" />
       <workItem from="1723735793585" duration="2052000" />
+      <workItem from="1723788406562" duration="365000" />
     </task>
     <servers />
   </component>

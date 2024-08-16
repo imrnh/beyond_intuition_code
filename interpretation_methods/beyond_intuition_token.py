@@ -2,7 +2,7 @@ import torch
 import numpy as np
 
 
-def beyond_intuition_tokenwise(model, x, device, index=None, steps=20, start_layer=6, samples=20, noise=0.2, mae=False, ssl=False, dino=False, taken_head_idx = None):
+def beyond_intuition_tokenwise(model, x, device, onehot, index=None, steps=20, start_layer=6, samples=20, noise=0.2, mae=False, ssl=False, dino=False, taken_head_idx = None):
 
     # A dictionary to track down all the output at every step, so we can visualize it.
     TRACKER_DICTIONARY = {
@@ -11,25 +11,10 @@ def beyond_intuition_tokenwise(model, x, device, index=None, steps=20, start_lay
         "start_layer": start_layer,
     }
 
-
     x = x.to(device)
 
     b = x.shape[0]  # Batch size
-    output = model(x, register_hook=True)
-    if index is None:
-        index = np.argmax(output.cpu().data.numpy(), axis=-1)
 
-    TRACKER_DICTIONARY["output"] = output
-
-    one_hot = np.zeros((b, output.size()[-1]), dtype=np.float32)
-    one_hot[np.arange(b), index] = 1
-    one_hot = torch.from_numpy(one_hot).requires_grad_(True).to(device)
-    one_hot = torch.sum(one_hot * output)
-
-    TRACKER_DICTIONARY['one_hot'] = one_hot
-
-    model.zero_grad()
-    one_hot.backward(retain_graph=True)
 
     _, num_head, num_tokens, _ = model.blocks[-1].attn.get_attention_map().shape
 
@@ -77,7 +62,6 @@ def beyond_intuition_tokenwise(model, x, device, index=None, steps=20, start_lay
             "O": O_t,
             "R": R,
         }
-
 
 
     if ssl:

@@ -25,7 +25,7 @@ plt.switch_backend("agg")
 
 
 class Main:
-    def __init__(self, batch_size=1, num_workers=1, alpha=2, tracker_file="tracker_file.txt"):
+    def __init__(self, batch_size=1, num_workers=1, alpha=2, tracker_file="heatmaps"):
         self.batch_size = batch_size
         self.num_workers = num_workers
         self.alpha = alpha
@@ -63,10 +63,28 @@ class Main:
         self.resulting_heatmaps = []
         self.input_images = []
 
+    def pre_inference(self, model, x):
+        b = x.shape[0] 
+        output = model(x, register_hook=True)
+        index = np.argmax(output.cpu().data.numpy(), axis=-1)
+
+        one_hot = np.zeros((b, output.size()[-1]), dtype=np.float32)
+        one_hot[np.arange(b), index] = 1
+        one_hot = torch.from_numpy(one_hot).requires_grad_(True).to(self.device)
+        one_hot = torch.sum(one_hot * output)
+
+        model.zero_grad()
+        one_hot.backward(retain_graph=True)
+        print(f"Inference result: {index}")
+        
+        return one_hot, index
+
+
     def write_tracker_file(self, tracker_dict):
         torch.save(tracker_dict, self.tracker_file)
+        
 
-    def generate_heatmap(self, image, label):
+    def generate_heatmap(self, image, label):        
         self.model.zero_grad()
         self.lrp_model.zero_grad()
 
@@ -78,18 +96,16 @@ class Main:
         if self.args.method == 'ours_c':
             num_heads = 12
             tokewise_heatmaps = [image_vizformat(image)]
-
+            one_hot, index = self.pre_inference(self.model, image)
             # Mean heatmap
-            heatmap, TRACKER_DICTIONARY = beyond_intuition_tokenwise(self.model, image, self.device, dino=True, start_layer=self.args.start_layer, taken_head_idx=None)
+            
+            heatmap, _ = beyond_intuition_tokenwise(self.model, image, self.device, onehot=one_hot, index=index, dino=True, start_layer=self.args.start_layer, taken_head_idx=None)
             tokewise_heatmaps.append(heatmap.reshape(14, 14).detach().cpu().numpy())
 
-            # Heatmap for only 1 attn map.
+            # Heatmap for only single attn map.
             for head_index in tqdm(range(num_heads)):
-                heatmap, TRACKER_DICTIONARY = beyond_intuition_tokenwise(self.model, image, self.device, dino=True, start_layer=self.args.start_layer, taken_head_idx=head_index)
-                tokewise_heatmaps.append(heatmap.reshape(14, 14).detach().cpu().numpy())
-
-                # if self.tracker_file:
-                #     self.write_tracker_file(tracker_dict=TRACKER_DICTIONARY)
+                heatmap_single_attn, _ = beyond_intuition_tokenwise(self.model, image, self.device, onehot=one_hot, index=index, dino=True, start_layer=self.args.start_layer, taken_head_idx=head_index)
+                tokewise_heatmaps.append(heatmap_single_attn.reshape(14, 14).detach().cpu().numpy())
 
             return tokewise_heatmaps
 
@@ -120,20 +136,22 @@ class Main:
 
         self.resulting_heatmaps.append(heatmap)
         self.input_images.append(image.detach().cpu().numpy())
-
+        
 
     def generate_explanation(self):
+        global_heatmaps_tracker = dict()
         for batch_idx, (image, labels) in enumerate(self.dataloader):
             image = image.to(self.device)
             labels = labels.to(self.device)
 
-            heatmaps = self.generate_heatmap(image, labels)
+            heatmap_list = self.generate_heatmap(image, labels)
+            global_heatmaps_tracker[batch_idx] = heatmap_list
+            
             # Write these input + 13 images
             titles = ["Input image", "Mean attention"] + [f"Map {map_idx + 1}" for map_idx in range(12)]
-            side_plot(heatmaps, titles)
-
-            # Save the heatmaps
-
+            side_plot(heatmap_list, titles)
+            
+            self.write_tracker_file(global_heatmaps_tracker)
 
 
 
