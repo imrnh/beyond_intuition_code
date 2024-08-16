@@ -6,3 +6,4 @@ run/
 dataset/
 dataset/gtsegs_ijcv.mat
 ModifiedVit.zip
+tracker_file.txt

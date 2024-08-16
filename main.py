@@ -6,7 +6,6 @@ import torch
 import torchvision.transforms as transforms
 from torch.utils.data import DataLoader
 
-import json
 import numpy as np
 from PIL import Image
 from tqdm import tqdm
@@ -18,6 +17,8 @@ from utils.imagenet_seg_loader import ImagenetSegLoader
 from utils.model_loaders import vit_base_patch16_224_dino, vit_base_patch16_224
 from utils.input_arguments import get_arg_parser
 from utils.saver import Saver
+from utils.sideplot import side_plot
+from utils.image_denorm import image_vizformat
 
 warnings.filterwarnings("ignore")
 plt.switch_backend("agg")
@@ -63,9 +64,7 @@ class Main:
         self.input_images = []
 
     def write_tracker_file(self, tracker_dict):
-        with open(self.tracker_file, 'w') as f:
-            json.dump(tracker_dict, f)
-            print("State saved in a file")
+        torch.save(tracker_dict, self.tracker_file)
 
     def generate_heatmap(self, image, label):
         self.model.zero_grad()
@@ -76,16 +75,30 @@ class Main:
 
         self.model(image)  # Forward pass to calculate gradients.
 
-        if self.args.method == 'rollout':
-            heatmap = rollout_attention(self.model, image, self.device, start_layer=1)
+        if self.args.method == 'ours_c':
+            num_heads = 12
+            tokewise_heatmaps = [image_vizformat(image)]
+
+            # Mean heatmap
+            heatmap, TRACKER_DICTIONARY = beyond_intuition_tokenwise(self.model, image, self.device, dino=True, start_layer=self.args.start_layer, taken_head_idx=None)
+            tokewise_heatmaps.append(heatmap.reshape(14, 14).detach().cpu().numpy())
+
+            # Heatmap for only 1 attn map.
+            for head_index in tqdm(range(num_heads)):
+                heatmap, TRACKER_DICTIONARY = beyond_intuition_tokenwise(self.model, image, self.device, dino=True, start_layer=self.args.start_layer, taken_head_idx=head_index)
+                tokewise_heatmaps.append(heatmap.reshape(14, 14).detach().cpu().numpy())
+
+                # if self.tracker_file:
+                #     self.write_tracker_file(tracker_dict=TRACKER_DICTIONARY)
+
+            return tokewise_heatmaps
+
 
         elif self.args.method == 'ours':
             heatmap = beyond_intuition_headwise(self.model, image, self.device, dino=True, start_layer=self.args.start_layer)
 
-        elif self.args.method == 'ours_c':
-            heatmap, TRACKER_DICTIONARY = beyond_intuition_tokenwise(self.model, image, self.device, dino=True, start_layer=self.args.start_layer)
-            if self.tracker_file:
-                self.write_tracker_file(tracker_dict=TRACKER_DICTIONARY)
+        elif self.args.method == 'rollout':
+            heatmap = rollout_attention(self.model, image, self.device, start_layer=1)
 
         elif self.args.method == 'transformer_attribution':
             heatmap = layerwise_relevance_propagation(self.lrp_model, image, self.device, start_layer=1, method="transformer_attribution")
@@ -108,12 +121,19 @@ class Main:
         self.resulting_heatmaps.append(heatmap)
         self.input_images.append(image.detach().cpu().numpy())
 
+
     def generate_explanation(self):
         for batch_idx, (image, labels) in enumerate(self.dataloader):
             image = image.to(self.device)
             labels = labels.to(self.device)
 
-            self.generate_heatmap(image, labels)
+            heatmaps = self.generate_heatmap(image, labels)
+            # Write these input + 13 images
+            titles = ["Input image", "Mean attention"] + [f"Map {map_idx + 1}" for map_idx in range(12)]
+            side_plot(heatmaps, titles)
+
+            # Save the heatmaps
+
 
 
 
