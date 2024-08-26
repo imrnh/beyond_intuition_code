@@ -63,23 +63,6 @@ class Main:
         self.resulting_heatmaps = []
         self.input_images = []
 
-    def pre_inference(self, model, x):
-        b = x.shape[0] 
-        output = model(x, register_hook=True)
-        index = np.argmax(output.cpu().data.numpy(), axis=-1)
-
-        one_hot = np.zeros((b, output.size()[-1]), dtype=np.float32)
-        one_hot[np.arange(b), index] = 1
-        one_hot = torch.from_numpy(one_hot).requires_grad_(True).to(self.device)
-        one_hot = torch.sum(one_hot * output)
-
-        model.zero_grad()
-        one_hot.backward(retain_graph=True)
-        print(f"Inference result: {index}")
-        
-        return one_hot, index
-
-
     def write_tracker_file(self, tracker_dict):
         torch.save(tracker_dict, self.tracker_file)
         
@@ -94,21 +77,8 @@ class Main:
         self.model(image)  # Forward pass to calculate gradients.
 
         if self.args.method == 'ours_c':
-            num_heads = 12
-            tokewise_heatmaps = [image_vizformat(image)]
-            one_hot, index = self.pre_inference(self.model, image)
-
-            # Mean heatmap            
-            heatmap, _ = beyond_intuition_tokenwise(self.model, image, self.device, onehot=one_hot, index=index, dino=True, start_layer=self.args.start_layer, taken_head_idx=None)
-            tokewise_heatmaps.append(heatmap.reshape(14, 14).detach().cpu().numpy())
-
-            # # Heatmap for only single attn map.
-            # for head_index in tqdm(range(num_heads)):
-            #     heatmap_single_attn, _ = beyond_intuition_tokenwise(self.model, image, self.device, onehot=one_hot, index=index, dino=True, start_layer=self.args.start_layer, taken_head_idx=head_index)
-            #     tokewise_heatmaps.append(heatmap_single_attn.reshape(14, 14).detach().cpu().numpy())
-
-            return tokewise_heatmaps
-
+            heatmap, _ = beyond_intuition_tokenwise(self.model, image, self.device, dino=True, start_layer=self.args.start_layer, taken_head_idx=None)
+            heatmap = heatmap.reshape(14, 14)
 
         elif self.args.method == 'ours':
             heatmap = beyond_intuition_headwise(self.model, image, self.device, dino=True, start_layer=self.args.start_layer)
@@ -134,7 +104,7 @@ class Main:
         if self.args.method != 'full_lrp':  # Interpolate to full image size (224,224)
             heatmap = torch.nn.functional.interpolate(heatmap, scale_factor=16, mode='bilinear').to(self.device)
 
-        self.resulting_heatmaps.append(heatmap)
+        self.resulting_heatmaps.append(heatmap.detach().cpu().numpy())
         self.input_images.append(image.detach().cpu().numpy())
         
 

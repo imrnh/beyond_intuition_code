@@ -2,7 +2,7 @@ import torch
 import numpy as np
 
 
-def beyond_intuition_tokenwise(model, x, device, onehot, index=None, steps=20, start_layer=6, samples=20, noise=0.2, mae=False, ssl=False, dino=False, taken_head_idx = None):
+def beyond_intuition_tokenwise(model, x, device, index=None, steps=20, start_layer=6, samples=20, noise=0.2, mae=False, ssl=False, dino=False, taken_head_idx = None):
 
     # A dictionary to track down all the output at every step, so we can visualize it.
     stat_dict = {

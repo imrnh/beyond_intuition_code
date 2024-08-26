@@ -1,7 +1,7 @@
 import numpy as np
 import torch
 
-def integrated_gradient(model, x, device, t_cls_idx=None, steps=20, start_layer=6, samples=20, noise=0.2):
+def integrated_gradient(model, x, device, t_cls_idx=None, steps=20):
     x = x.to(device)
 
     b = x.shape[0]
