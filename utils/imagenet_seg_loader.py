@@ -7,8 +7,6 @@ from PIL import Image
 
 
 class ImagenetSegLoader(data.Dataset):
-    CLASSES = 2
-
     def __init__(self, path, length_limit=None, transform=None, target_transform=None):
         self.path = path
         self.transform = transform

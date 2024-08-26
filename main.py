@@ -90,22 +90,22 @@ class Main:
 
         image.requires_grad = True
         image = image.requires_grad_()
-
+        
         self.model(image)  # Forward pass to calculate gradients.
 
         if self.args.method == 'ours_c':
             num_heads = 12
             tokewise_heatmaps = [image_vizformat(image)]
             one_hot, index = self.pre_inference(self.model, image)
-            # Mean heatmap
-            
+
+            # Mean heatmap            
             heatmap, _ = beyond_intuition_tokenwise(self.model, image, self.device, onehot=one_hot, index=index, dino=True, start_layer=self.args.start_layer, taken_head_idx=None)
             tokewise_heatmaps.append(heatmap.reshape(14, 14).detach().cpu().numpy())
 
-            # Heatmap for only single attn map.
-            for head_index in tqdm(range(num_heads)):
-                heatmap_single_attn, _ = beyond_intuition_tokenwise(self.model, image, self.device, onehot=one_hot, index=index, dino=True, start_layer=self.args.start_layer, taken_head_idx=head_index)
-                tokewise_heatmaps.append(heatmap_single_attn.reshape(14, 14).detach().cpu().numpy())
+            # # Heatmap for only single attn map.
+            # for head_index in tqdm(range(num_heads)):
+            #     heatmap_single_attn, _ = beyond_intuition_tokenwise(self.model, image, self.device, onehot=one_hot, index=index, dino=True, start_layer=self.args.start_layer, taken_head_idx=head_index)
+            #     tokewise_heatmaps.append(heatmap_single_attn.reshape(14, 14).detach().cpu().numpy())
 
             return tokewise_heatmaps
 

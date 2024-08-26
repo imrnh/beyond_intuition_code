@@ -14,13 +14,15 @@ def _cfg(url='', **kwargs):
 # Check if models/pretrained_model exists or not.
 # If the directory doesn't exists, the reason might be cause we are using kaggle notebook.
 # Therefore, load using kaggle.
-if os.path.exists("models/pretrained_model"):
-    model_base_dir = "models/pretrained_model"
-else:
-    model_base_dir = "/kaggle/input/popular-vits-for-interpretation/pytorch/default/1"
+# if os.path.exists("models/pretrained_model"):
+#     model_base_dir = "models/pretrained_model"
+# else:
+#     model_base_dir = "/kaggle/input/popular-vits-for-interpretation/pytorch/default/1"
 
-print(f"Model base directory set to: {model_base_dir}. @utils.config.py.22")
+# print(f"Model base directory set to: {model_base_dir}. @utils.config.py.22")
 
+
+model_base_dir = "models/pretrained_model"
 
 
 default_config = {

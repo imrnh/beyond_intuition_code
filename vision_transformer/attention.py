@@ -44,26 +44,38 @@ class Attention(nn.Module):
     def forward(self, x, register_hook=False):
         b, n, _, h = *x.shape, self.num_heads
         self.save_input(x)
+        
 
         qkv = self.qkv(x)
+        print(f"qkv shape: {qkv.shape}")
+
         q, k, v = rearrange(qkv, 'b n (qkv h d) -> qkv b h n d', qkv=3, h=h)
+        print(f"q, k, v shape: {q.shape}\t{k.shape}\t{v.shape}")
 
         dots = torch.einsum('bhid,bhjd->bhij', q, k) * self.scale
+        print(f"dots shape: {dots.shape}")
 
         attn = dots.softmax(dim=-1)
         attn = self.attn_drop(attn)
+        print(f"attn = dots.softmax(dims=-1) and then applying dropout")
 
         out = torch.einsum('bhij,bhjd->bhid', attn, v)  # Simple torch.matmul actually.
+        print(f"out shape: {out.shape}\t\t out = torch.einsum('bhij,bhjd->bhid', attn, v)")
 
         self.save_attention_map(attn)
+        print("attn is saved as attention map.")
         if register_hook:
             attn.register_hook(self.save_attn_gradients)
 
         out = rearrange(out, 'b h n d -> b n (h d)')
+        print(f"out shaped after rearrange: {out.shape} \t\t Code: out = rearrange(out, 'b h n d -> b n (h d)')")
 
         out = self.proj(out)
         out = self.proj_drop(out)
 
+        print(f"out shape after proj using nn.Linear(dim, dim) = \t {out.shape}")
+
         self.vproj = torch.matmul(rearrange(v, 'b h n d -> b n (h d)'), self.proj.weight.t())
+        print(f"vproj shape : {self.vproj.shape}")
 
         return out

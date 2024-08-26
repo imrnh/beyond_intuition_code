@@ -40,7 +40,7 @@ def get_arg_parser():
                         default=False,
                         help='')
     parser.add_argument('--len-lim', type=int,
-                        default=1,
+                        default=100,
                         help='')
     parser.add_argument('--imagenet-seg-path', type=str, required=True)
     parser.add_argument('--model-dir', type=str, default='models/pretrained_model/')
