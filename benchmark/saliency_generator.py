@@ -2,8 +2,9 @@
 For any given model & interpretation method, generate the saliency map. 
 Saliency map data is stored in a pytorch file inside benchmark folder.
 """
+
+import os
 import torch
-import saliency
 import torch.nn as nn
 import torchvision.transforms as transforms
 from torch.utils.data import DataLoader
@@ -17,7 +18,8 @@ from PIL import Image
 
 class SaliencyGenerator(nn.Module):
     def __init__(self, verbose=False, data_lim=2000) -> None:
-        self.data_path = "lib\dataset\gtsegs_ijcv.mat"
+        super().__init__()
+        self.data_path = "content/lib/dataset/gtsegs_ijcv.mat"
         self.data_length = data_lim
         self.batch_size = 1
         self.num_workers = 1
@@ -66,13 +68,13 @@ class SaliencyGenerator(nn.Module):
             heatmap = heatmap.reshape((14, 14)).detach().cpu()
 
             self.saliency_information[batch_idx] = {
-                'image': image_vizformat(image.tolist()),
+                'image': image_vizformat(image).tolist(),
                 'heatmap': heatmap.tolist(),
-                'label': labels.tolist()
+                'label': labels.tolist(),
+                'logit': self.model(image, register_hook=False).tolist()
             }
 
-            self.saliency_writer('benchmark/saliency.pt')
-
+        self.saliency_writer('/content/benchmark/saliency.pt')
         print(f"Finished generating saliency for {self.data_length} images")
 
 
