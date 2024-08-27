@@ -21,6 +21,7 @@ default_config = {
     ),
     'vit_base_patch16_224': _cfg(
         url=f'{model_base_dir}/jx_vit_base_p16_224-80ecf9dd.pth',
+        # url="C:/Users/muimr/Research/Vit Interpret/Codes/beyond_intuition/lib/benchmark__trained_on_noisy_data/ff.pth",
         mean=(0.5, 0.5, 0.5), std=(0.5, 0.5, 0.5),
     ),
     'vit_base_patch16_224_moco': _cfg(

@@ -68,17 +68,18 @@ class SaliencyGenerator(nn.Module):
             heatmap = heatmap.reshape((14, 14)).detach().cpu()
 
             self.saliency_information[batch_idx] = {
-                'image': image_vizformat(image).tolist(),
                 'heatmap': heatmap.tolist(),
                 'label': labels.tolist(),
                 'logit': self.model(image, register_hook=False).tolist()
             }
 
-        self.saliency_writer('/content/benchmark/saliency.pt')
+        self.saliency_writer(f'/content/benchmark/saliency_records/{saliency}_saliency.pt')
         print(f"Finished generating saliency for {self.data_length} images")
 
 
 
 if __name__ == "__main__":
+    os.makedirs("saliency_records", exist_ok=True)
+
     slgen = SaliencyGenerator(data_lim=5)
     slgen("bi_t")
