@@ -8,3 +8,4 @@ lib/dataset/gtsegs_ijcv.mat
 ModifiedVit.zip
 tracker_file.txt
 lib/benchmark__trained_on_noisy_data
+draft/sample_images_dir
