@@ -6,8 +6,9 @@ import torch
 import torch.nn as nn
 from torch.optim import Adam
 from torch.nn import CrossEntropyLoss
-from torch.utils.data.dataloader import DataLoader
+from torchvision import datasets
 import torchvision.transforms as transforms
+from torch.utils.data.dataloader import DataLoader
 
 import os
 import numpy as np
@@ -43,13 +44,12 @@ class ModelTrainer:
             transforms.ToTensor(),
             transforms.Normalize(mean=[0.5, 0.5, 0.5], std=[0.5, 0.5, 0.5]),
         ])
-        self.label_transform = transforms.Compose([transforms.Resize((224, 224), Image.NEAREST), ])
 
-        self.dataset = ImagenetLoader(self.data_path + "/train", self.data_length, transform=self.image_transform)
+        self.dataset = datasets.ImageFolder(root=self.data_path + "/train", transform=self.image_transform)
         self.dataloader = DataLoader(self.dataset, batch_size=self.batch_size, shuffle=False, num_workers=self.num_workers, drop_last=False)
         self.dataloader = tqdm(self.dataloader)  # Would help tracking loop iteration along with setting some verbose text.
 
-        self.validation_dataset = ImagenetLoader(self.data_path + "/validation", self.data_length, transform=self.image_transform)
+        self.validation_dataset = datasets.ImageFolder(root=self.data_path + "/test", transform=self.image_transform)
         self.validation_dataloader = DataLoader(self.validation_dataset, batch_size=self.batch_size, shuffle=False, num_workers=self.num_workers, drop_last=False)
         self.validation_dataloader = tqdm(self.validation_dataloader)
 
@@ -75,7 +75,7 @@ class ModelTrainer:
 
             print(f"Epoch {epoch + 1}/{self.epochs} loss: {train_loss:.2f}")
 
-        self.save_model()
+        self.save_model("raw_images")  # ___________________________ CHANGE IT BEFORE TRAINING PLEASE....
 
     def save_model(self, model_name):
         os.makedirs(self.save_dir, exist_ok=True)
@@ -86,4 +86,4 @@ class ModelTrainer:
 
 
 if __name__ == "__main__":
-    trainer = ModelTrainer(data_path="", epochs=10, batch_size=32, num_workers=4, lr=0.0004, weight_decay=0.001)
+    trainer = ModelTrainer(data_path="", epochs=5, batch_size=32, num_workers=4, lr=0.0004, weight_decay=0.001)
