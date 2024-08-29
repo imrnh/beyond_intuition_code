@@ -1,7 +1,6 @@
 import os, json
 import torch
 from typing import List
-from monitor_ops import monitor_condition
 
 class Callback:
     def __init__(self,  log_fp, save_dir, save_weight_only, verbose, early_stop, tolerated_diff, patience):
@@ -65,11 +64,11 @@ class Callback:
     def model_checkpoint(self, model, model_prefix, metrics):
         if self.is_min_loss(metrics):
             model_name = model_prefix + "min_validation_loss" + ".pth"
-            self.save_model(model, model_prefix)
+            self.save_model(model, model_name)
 
         if self.is_max_acc(metrics):
             model_name = model_prefix + "max_validation_accuracy" + ".pth"
-            self.save_model(model, model_prefix)
+            self.save_model(model, model_name)
 
 
     def log_checkpoint(self, metrics, epoch):
@@ -79,6 +78,6 @@ class Callback:
         if self.verbose: print(metrics);
 
 
-    def __call__(self, model, model_prefix, metrics, epoch):
+    def __call__(self, model, model_prefix, epoch, metrics):
         self.log_checkpoint(metrics, epoch)
         self.model_checkpoint(model, model_prefix, metrics)
