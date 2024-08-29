@@ -5,7 +5,7 @@
 import os
 import numpy as np
 from scipy import stats
-from corrupt_data import get_corrupted_image
+from hypothesis_eval.corrupt_data import get_corrupted_image
 
 
 """

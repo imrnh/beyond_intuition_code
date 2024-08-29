@@ -16,13 +16,16 @@ def _conv_filter(state_dict, patch_size=16):
     return out_dict
 
 
-def vit_small_patch16_224(pretrained=False, w_rel=False, **kwargs):
+def vit_small_patch16_224(pretrained=False, model_path=None, num_classes=1000, w_rel=False, **kwargs):
     if w_rel:
-        model = VisionTransformerWRel(patch_size=16, embed_dim=768, depth=8, num_heads=6, mlp_ratio=3, qkv_bias=False,
+        model = VisionTransformerWRel(patch_size=16, num_classes=num_classes, embed_dim=768, depth=8, num_heads=6, mlp_ratio=3, qkv_bias=False,
                                       **kwargs)
     else:
-        model = VisionTransformer(patch_size=16, embed_dim=768, depth=8, num_heads=6, mlp_ratio=3, qkv_bias=False,
+        model = VisionTransformer(patch_size=16, num_classes=num_classes, embed_dim=768, depth=8, num_heads=6, mlp_ratio=3, qkv_bias=False,
                                   norm_layer=partial(nn.LayerNorm, eps=1e-6), **kwargs)
+
+    if model_path is not None:
+        default_config['url'] = model_path
 
     model.default_cfg = default_config['vit_small_patch16_224']
     if pretrained:
@@ -31,12 +34,12 @@ def vit_small_patch16_224(pretrained=False, w_rel=False, **kwargs):
     return model
 
 
-def vit_base_patch16_224(pretrained=False, w_rel=False, **kwargs):
+def vit_base_patch16_224(pretrained=False, model_path=None, num_classes=1000, w_rel=False, **kwargs):
     if w_rel:
         model = VisionTransformerWRel(patch_size=16, embed_dim=768, depth=12, num_heads=12, mlp_ratio=4, qkv_bias=True,
                                       **kwargs)
     else:
-        model = VisionTransformer(patch_size=16, embed_dim=768, depth=12, num_heads=12, mlp_ratio=4, qkv_bias=True,
+        model = VisionTransformer(patch_size=16, num_classes=num_classes, embed_dim=768, depth=12, num_heads=12, mlp_ratio=4, qkv_bias=True,
                                   norm_layer=partial(nn.LayerNorm, eps=1e-6), **kwargs)
     model.default_cfg = default_config['vit_base_patch16_224']
     if pretrained:
