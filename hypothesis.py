@@ -8,24 +8,35 @@ import torch
 import torch.nn as nn
 import torchvision.transforms as transforms
 from torch.utils.data import DataLoader
-from utils.model_loaders import vit_base_patch16_224_dino, vit_base_patch16_224
 from interpretation_methods import beyond_intuition_tokenwise, beyond_intuition_headwise, integrated_gradient
+from utils.model_loaders import vit_base_patch16_224_dino, vit_base_patch16_224
 from utils.imagenet_seg_loader import ImagenetSegLoader
 from utils.image_denorm import image_vizformat
-from tqdm import tqdm
+from hyp.helpers import mismatched_image_corruption, find_mismatched_tokens
+from hyp.corrupt_data import get_corrupted_image
+from tqdm.auto import tqdm
 from PIL import Image
 
 
 class SaliencyGenerator(nn.Module):
-    def __init__(self, verbose=False, data_lim=2000) -> None:
+
+    """
+        @param corrupt_percent: used for hypothesis 1.
+        @param corrupt_count: used for hypothesis 2 to get more control.
+        @param hyp2_pat : patience i.e. the abs difference to be accredated for hypothesis 2.
+    """
+
+    def __init__(self, corrupt_percent, corrupt_count, hyp2_pat, verbose=False, data_lim=2000) -> None:
         super().__init__()
+        self.corrupt_percent = corrupt_percent
+        self.corrupt_count = corrupt_count
+        self.hyp2_pat = hyp2_pat
         self.data_path = "content/lib/dataset/gtsegs_ijcv.mat"
         self.data_length = data_lim
         self.batch_size = 1
         self.num_workers = 1
         self.verbose = verbose
         self.device = torch.device("cuda" if torch.cuda.is_available() else "cpu")
-
         self.saliency_information = dict()
 
         # Data loading and transforms
@@ -45,30 +56,53 @@ class SaliencyGenerator(nn.Module):
         self.model.eval()  # Set to eval mode. Helps tarcking gradient.
 
         self.saliency_writer = lambda output_path: torch.save(self.saliency_information, output_path)
+        self.accuracies = {}
+
 
         print("""Please select a valid saliency method while calling the forward pass. Valid saliency methods are: 
                 ig -> Integrated Gradient \n
                 bi_t -> Tokenwise Beyond Intuition
                 bi_h -> Headwise Beyond Intuition
               """)
-        
+
+    def find_accuracy(self, img, y):
+        out = self.model(img)
+        index = torch.argmax(out)
+        return index == y
 
 
-    def forward(self, saliency):
-        for batch_idx, (image, labels) in enumerate(self.dataloader):
-            if saliency == "ig":
+    def make_heatmap(self, image, saliency):
+        if saliency == "ig":
                 heatmap = integrated_gradient(self.model, image, self.device)
 
-            elif saliency == "bi_t":
-                heatmap, _ = beyond_intuition_tokenwise(self.model, image, self.device, dino=True, start_layer=0)
-                
-            elif saliency == "bi_h":
-                heatmap = beyond_intuition_headwise(self.model, image, self.device, dino=True, start_layer=self.args.start_layer)
+        elif saliency == "bi_t":
+            heatmap, _ = beyond_intuition_tokenwise(self.model, image, self.device, dino=True, start_layer=0)
             
-            heatmap = heatmap.reshape((14, 14)).detach().cpu()
+        elif saliency == "bi_h":
+            heatmap = beyond_intuition_headwise(self.model, image, self.device, dino=True, start_layer=self.args.start_layer)
+        
+        return heatmap.reshape((14, 14)).detach().cpu()
+        
+
+    def forward(self, saliency="bi_t"):
+        for batch_idx, (image, labels) in enumerate(self.dataloader):
+            heatmaps = {}
+
+            # Heatmap without any perturbation
+            r_ig_heatmap = self.make_heatmap(image, saliency="ig")
+            r_bit_heatmap = self.make_heatmap(image, saliency="bit")
+            heatmaps['raw_ig'] = r_ig_heatmap
+            heatmaps['raw_bit'] = r_bit_heatmap
+
+
+
+            for per in self.corrupt_percent:
+                corrupted_image = mismatched_image_corruption(image, r_ig_heatmap, r_bit_heatmap, corrupt_percentage=per)
+
+
 
             self.saliency_information[batch_idx] = {
-                'heatmap': heatmap.tolist(),
+                'raw_ig': r_ig_heatmap.tolist(), 'raw_bit': r_bit_heatmap.tolist(),
                 'label': labels.tolist(),
                 'logit': self.model(image, register_hook=False).tolist()
             }

@@ -47,17 +47,11 @@ def find_mismatched_tokens(ig_hmap, bi_hmap, tolerate_limit=0.2):
     
 """
 
-def mismatched_image_corruption(dataloader, ig_state_dict, bi_state_dict):
-    corrupted_dataset = []
-    for index, (image, label) in enumerate(dataloader):
-        ig_hmap = ig_state_dict[index]['heatmap']
-        bi_hmap = bi_state_dict[index]['heatmap']
+def mismatched_image_corruption(image, ig_hmap, bi_hmap, corrupt_percentage):
+    mismatch = find_mismatched_tokens(ig_hmap, bi_hmap)
+    modified_hmap =[(hv if mismatch[idx] != 1 else bi_hmap.min()) for idx, hv in enumerate(ig_hmap)]  # Clever trick here.
+    
+    return get_corrupted_image(image, modified_hmap, corrupt_percentage=corrupt_percentage)
 
-        mismatch = find_mismatched_tokens(ig_hmap, bi_hmap)
-        modified_hmap =[(hv if mismatch[idx] != 1 else bi_hmap.min()) for idx, hv in enumerate(ig_hmap)]
 
-        corrupted_image = get_corrupted_image(image, modified_hmap, corrupt_percentage=0.15)
-
-        corrupted_dataset.append((corrupted_image, label))
-
-    print("Corrupted All the data")
+        
